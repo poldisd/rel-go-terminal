@@ -742,44 +742,13 @@ document.getElementById("cmdline").addEventListener("keydown", e=>{ if(e.key==="
 async function searchAndGenerate(query){
   setSearchLoading(true, query);
   try{
-    const prompt = `Erstelle ein illustratives Beziehungsnetzwerk für die Firma oder den Ticker "${query}" für ein Finanz-Demo-Tool.
-Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt, ohne Markdown-Codeblöcke, ohne Kommentar davor oder danach, exakt in diesem Schema:
-{
-  "name": "vollständiger Firmenname",
-  "ticker": "BÖRSENKÜRZEL",
-  "sector": "kurze Branche",
-  "price": "$123.45",
-  "change": "+1.2%",
-  "changeSign": "pos oder neg",
-  "marketCap": "z.B. $52.3B",
-  "peRatio": "z.B. 19.4",
-  "divYield": "z.B. 1.2% (oder 0% falls keine Dividende)",
-  "week52": "z.B. $155 – $258",
-  "volume": "z.B. 1.8M",
-  "beta": "z.B. 0.85",
-  "desc": "ein kurzer Satz auf Deutsch, was die Firma macht",
-  "holders": [ {"name":"...", "desc":"kurze deutsche Erklärung, wer/was das ist"} ] (4 Einträge, reale bekannte institutionelle Investoren wo plausibel),
-  "board": [ {"name":"Name (CEO)", "desc":"..."}, {"name":"...", "desc":"..."} ] (4 Einträge, erster ist CEO, kurze deutsche Erklärung der Rolle, keine erfundenen Details),
-  "banks": [ {"name":"...", "desc":"kurze deutsche Erklärung: Investmentbank mit Coverage"} ] (3 Einträge),
-  "customers": [ {"name":"...", "size":"large|medium|small", "desc":"kurze deutsche Erklärung, wer das ist und warum Kunde"} ] (3-4 Einträge, Größe nach Vertragsvolumen),
-  "suppliers": [ {"name":"...", "size":"large|medium|small", "desc":"kurze deutsche Erklärung"} ] (3-4 Einträge)
-}
-Alle "desc"-Texte auf Deutsch, maximal 15 Wörter, sachlich, keine Spekulation. Nur das JSON-Objekt, sonst nichts.`;
-
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }]
-      })
+      body: JSON.stringify({ query })
     });
-    if(!resp.ok) throw new Error("HTTP " + resp.status);
-    const data = await resp.json();
-    const textBlocks = (data.content || []).filter(b=>b.type==="text").map(b=>b.text).join("");
-    const clean = textBlocks.replace(/```json|```/g, "").trim();
-    const obj = JSON.parse(clean);
+    const obj = await resp.json();
+    if(!resp.ok) throw new Error(obj.error || ("HTTP " + resp.status));
     if(!obj.ticker || !obj.holders) throw new Error("unvollständige Antwort");
     obj.generated = true;
 
